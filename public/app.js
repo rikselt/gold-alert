@@ -159,19 +159,23 @@ function checkStandaloneMode() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
   checkStandaloneMode();
-  swRegistration = await registerSW();
 
-  // Check if already subscribed
-  if (swRegistration) {
-    const existing = await swRegistration.pushManager.getSubscription();
-    if (existing) {
-      currentSubscription = existing;
-      setAlertEnabled(true);
-      document.getElementById('alert-status').textContent = 'Alerts are active.';
-    }
-  }
-
+  // Fetch price first — always works regardless of notifications support
   await fetchPriceWithRetry();
-  // Refresh price every 60 seconds while page is visible
   setInterval(() => { if (!document.hidden) fetchPriceWithRetry(); }, 60000);
+
+  // Service worker + push setup (best effort — don't block price display)
+  try {
+    swRegistration = await registerSW();
+    if (swRegistration && swRegistration.pushManager) {
+      const existing = await swRegistration.pushManager.getSubscription();
+      if (existing) {
+        currentSubscription = existing;
+        setAlertEnabled(true);
+        document.getElementById('alert-status').textContent = 'Alerts are active.';
+      }
+    }
+  } catch (e) {
+    console.warn('Push setup failed (expected in Chrome/non-standalone):', e.message);
+  }
 })();
