@@ -11,9 +11,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ── VAPID setup ──────────────────────────────────────────────────────────────
-let VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY;
-let VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
-const VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:admin@gold-alert.local';
+let VAPID_PUBLIC  = (process.env.VAPID_PUBLIC_KEY  || '').replace(/^["']|["']$/g, '').trim();
+let VAPID_PRIVATE = (process.env.VAPID_PRIVATE_KEY || '').replace(/^["']|["']$/g, '').trim();
+const VAPID_EMAIL = (process.env.VAPID_EMAIL || 'mailto:rikselt@gmail.com').replace(/^["']|["']$/g, '').trim();
 
 if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
   const keys = webpush.generateVAPIDKeys();
