@@ -32,12 +32,20 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..');
 const SUBS_FILE = path.join(DATA_DIR, 'subscriptions.json');
 
 function loadSubs() {
-  try { return JSON.parse(fs.readFileSync(SUBS_FILE, 'utf8')); }
-  catch { return []; }
+  // Try file first, then fall back to PUSH_SUBSCRIPTIONS env var
+  try { return JSON.parse(fs.readFileSync(SUBS_FILE, 'utf8')); } catch {}
+  try {
+    const envSubs = process.env.PUSH_SUBSCRIPTIONS;
+    if (envSubs) return JSON.parse(envSubs);
+  } catch {}
+  return [];
 }
 
 function saveSubs(subs) {
-  fs.writeFileSync(SUBS_FILE, JSON.stringify(subs, null, 2));
+  try { fs.writeFileSync(SUBS_FILE, JSON.stringify(subs, null, 2)); } catch {}
+  // Log the subscription so user can back it up in Railway Variables
+  console.log('[subs] Current subscriptions (save as PUSH_SUBSCRIPTIONS in Railway Variables):');
+  console.log(JSON.stringify(subs));
 }
 
 // ── Price cache ──────────────────────────────────────────────────────────────
