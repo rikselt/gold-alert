@@ -40,21 +40,32 @@ function saveSubs(subs) {
 }
 
 // ── Price cache ──────────────────────────────────────────────────────────────
+const CACHE_FILE = path.join(__dirname, '../price-cache.json');
 let priceCache = null;
+
+function loadCachedPrice() {
+  try { return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')); } catch { return null; }
+}
+
+function saveCachedPrice(data) {
+  try { fs.writeFileSync(CACHE_FILE, JSON.stringify(data)); } catch {}
+}
 
 async function refreshPrice() {
   try {
     priceCache = await getGoldPrice();
-    console.log(`[price] ${priceCache.price} USD/oz (${priceCache.source})`);
+    saveCachedPrice(priceCache);
+    console.log(`[price] ${priceCache.price} USD/20g (${priceCache.source})`);
   } catch (err) {
     console.error('[price] Failed to fetch:', err.message);
+    if (!priceCache) priceCache = loadCachedPrice(); // use last known price
   }
 }
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.get('/price', async (req, res) => {
   if (!priceCache) await refreshPrice();
-  if (!priceCache) return res.status(503).json({ error: 'Price unavailable — check server logs' });
+  if (!priceCache) return res.status(503).json({ error: 'Price unavailable — all sources failed' });
   res.json(priceCache);
 });
 
@@ -145,7 +156,8 @@ app.listen(PORT, () => {
   console.log(`   Open in Safari on your iPhone, then Add to Home Screen\n`);
 });
 
-// Initial price fetch + cron
+// Load last known price instantly, then refresh
+priceCache = loadCachedPrice();
 refreshPrice();
 cron.schedule('* * * * *', refreshPrice);        // refresh price every 1 minute
 cron.schedule('*/5 * * * *', checkAndAlert);     // check alerts every 5 minutes

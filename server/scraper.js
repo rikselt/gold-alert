@@ -21,41 +21,31 @@ function get(url) {
 async function getGoldPrice() {
   const errors = [];
 
-  // Source 1: Stooq CSV — Symbol,Date,Time,Open,High,Low,Close,Volume
+  // Source 1: Yahoo Finance (gold futures GC=F)
   try {
-    const { body } = await get('https://stooq.com/q/l/?s=xauusd&f=sd2t2ohlcv&h&e=csv');
-    console.log('[scraper] stooq body:', body.trim());
-    const lines = body.trim().split('\n');
-    const values = lines[1]?.split(',');
-    // Close price is at index 6: Symbol(0),Date(1),Time(2),Open(3),High(4),Low(5),Close(6),Volume(7)
-    const pricePerOz = parseFloat(values?.[6]);
-    if (pricePerOz && pricePerOz > 100) {
-      const price = parseFloat(((pricePerOz / 31.1035) * 20).toFixed(2));
-      return { price, source: 'stooq.com', updatedAt: new Date().toISOString() };
-    }
-    errors.push('stooq: invalid price: ' + JSON.stringify(values));
-  } catch (e) { errors.push('stooq: ' + e.message); }
-
-  // Source 2: metals.live
-  try {
-    const { status, body } = await get('https://api.metals.live/v1/spot/gold');
-    console.log('[scraper] metals.live status:', status, body.slice(0, 100));
+    const { status, body } = await get('https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1d&range=1d');
+    console.log('[scraper] yahoo status:', status);
     const data = JSON.parse(body);
-    const price = Array.isArray(data) ? data[0]?.price : data?.price;
-    if (price && price > 100) return { price, source: 'metals.live', updatedAt: new Date().toISOString() };
-    errors.push('metals.live: no price');
-  } catch (e) { errors.push('metals.live: ' + e.message); }
+    const pricePerOz = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    console.log('[scraper] yahoo pricePerOz:', pricePerOz);
+    if (pricePerOz && pricePerOz > 100) {
+      const price = parseFloat(((pricePerOz / 31.1035) * 20 * 1.0493).toFixed(2));
+      console.log('[scraper] yahoo converted price:', price);
+      return { price, source: 'live market', updatedAt: new Date().toISOString() };
+    }
+    errors.push('yahoo: no price in response');
+  } catch (e) { errors.push('yahoo: ' + e.message); }
 
-  // Source 3: Swissquote
+  // Source 2: Swissquote
   try {
     const { status, body } = await get('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD');
-    console.log('[scraper] swissquote status:', status, body.slice(0, 100));
+    console.log('[scraper] swissquote status:', status);
     const data = JSON.parse(body);
     const pricePerOz = data?.[0]?.spreadProfilePrices?.[0]?.ask;
+    console.log('[scraper] swissquote pricePerOz:', pricePerOz);
     if (pricePerOz && pricePerOz > 100) {
-      // Convert from per troy oz to per 20 grams, then apply bdfl.bt dealer premium (~4.93%)
       const price = parseFloat(((pricePerOz / 31.1035) * 20 * 1.0493).toFixed(2));
-      return { price, source: 'gold.bdfl.bt (live)', updatedAt: new Date().toISOString() };
+      return { price, source: 'live market', updatedAt: new Date().toISOString() };
     }
     errors.push('swissquote: no price');
   } catch (e) { errors.push('swissquote: ' + e.message); }
