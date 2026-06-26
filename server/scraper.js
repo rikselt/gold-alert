@@ -1,35 +1,74 @@
-async function getGoldPrice() {
-  // Try goldprice.org JSON feed
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch('https://data-asg.goldprice.org/dbXRates/USD');
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function getGoldPrice() {
+  const errors = [];
+
+  // Source 1: goldprice.org
+  try {
+    const res = await fetchWithTimeout('https://data-asg.goldprice.org/dbXRates/USD');
     if (res.ok) {
       const data = await res.json();
-      const pricePerOz = data?.items?.[0]?.xauPrice;
-      if (pricePerOz) return { price: pricePerOz, source: 'goldprice.org', updatedAt: new Date().toISOString() };
+      const price = data?.items?.[0]?.xauPrice;
+      if (price && price > 100) {
+        console.log('[scraper] goldprice.org:', price);
+        return { price, source: 'goldprice.org', updatedAt: new Date().toISOString() };
+      }
     }
-  } catch (e) { console.warn('[scraper] goldprice.org failed:', e.message); }
+  } catch (e) { errors.push('goldprice.org: ' + e.message); }
 
-  // Try metals-api
+  // Source 2: Yahoo Finance gold futures
   try {
-    const res = await fetch('https://api.metals.live/v1/spot/gold');
+    const res = await fetchWithTimeout(
+      'https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1m&range=1d',
+      { headers: { 'User-Agent': 'Mozilla/5.0' } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (price && price > 100) {
+        console.log('[scraper] yahoo finance:', price);
+        return { price, source: 'Yahoo Finance', updatedAt: new Date().toISOString() };
+      }
+    }
+  } catch (e) { errors.push('yahoo: ' + e.message); }
+
+  // Source 3: metals.live
+  try {
+    const res = await fetchWithTimeout('https://api.metals.live/v1/spot/gold');
     if (res.ok) {
       const data = await res.json();
       const price = data?.[0]?.price;
-      if (price) return { price, source: 'metals.live', updatedAt: new Date().toISOString() };
+      if (price && price > 100) {
+        console.log('[scraper] metals.live:', price);
+        return { price, source: 'metals.live', updatedAt: new Date().toISOString() };
+      }
     }
-  } catch (e) { console.warn('[scraper] metals.live failed:', e.message); }
+  } catch (e) { errors.push('metals.live: ' + e.message); }
 
-  // Try frankfurter / open exchange as last resort
+  // Source 4: Frankfurter (XAU/USD via currency rates)
   try {
-    const res = await fetch('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD');
+    const res = await fetchWithTimeout('https://api.frankfurter.app/latest?from=XAU&to=USD');
     if (res.ok) {
       const data = await res.json();
-      const price = data?.[0]?.spreadProfilePrices?.[0]?.ask;
-      if (price) return { price, source: 'swissquote', updatedAt: new Date().toISOString() };
+      const price = data?.rates?.USD;
+      if (price && price > 100) {
+        console.log('[scraper] frankfurter:', price);
+        return { price, source: 'frankfurter', updatedAt: new Date().toISOString() };
+      }
     }
-  } catch (e) { console.warn('[scraper] swissquote failed:', e.message); }
+  } catch (e) { errors.push('frankfurter: ' + e.message); }
 
-  throw new Error('All price sources failed');
+  console.error('[scraper] All sources failed:', errors.join(' | '));
+  throw new Error('All price sources failed: ' + errors.join(', '));
 }
 
 module.exports = { getGoldPrice };

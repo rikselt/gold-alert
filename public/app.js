@@ -20,8 +20,8 @@ async function fetchPrice() {
 
     updateThresholdStatus(data.price);
   } catch (err) {
-    metaEl.textContent = 'Failed to load price';
-    valEl.textContent = 'Error';
+    metaEl.textContent = 'Failed to load — tap ↻ to retry';
+    valEl.textContent = '–––';
   }
 }
 
