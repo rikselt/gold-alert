@@ -54,8 +54,28 @@ async function refreshPrice() {
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.get('/price', async (req, res) => {
   if (!priceCache) await refreshPrice();
-  if (!priceCache) return res.status(503).json({ error: 'Price unavailable' });
+  if (!priceCache) return res.status(503).json({ error: 'Price unavailable — check server logs' });
   res.json(priceCache);
+});
+
+app.get('/debug', async (req, res) => {
+  const results = {};
+  const sources = [
+    ['goldprice.org', 'https://data-asg.goldprice.org/dbXRates/USD'],
+    ['yahoo', 'https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1m&range=1d'],
+    ['metals.live', 'https://api.metals.live/v1/spot/gold'],
+    ['frankfurter', 'https://api.frankfurter.app/latest?from=XAU&to=USD'],
+  ];
+  for (const [name, url] of sources) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(5000), headers: { 'User-Agent': 'Mozilla/5.0' } });
+      const text = await r.text();
+      results[name] = { status: r.status, body: text.slice(0, 200) };
+    } catch (e) {
+      results[name] = { error: e.message };
+    }
+  }
+  res.json(results);
 });
 
 app.get('/vapid-public-key', (req, res) => {
