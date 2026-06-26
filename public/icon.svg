@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#1a1a1a"/>
+  <circle cx="256" cy="256" r="180" fill="#d4a017" opacity="0.15"/>
+  <circle cx="256" cy="256" r="140" fill="#d4a017" opacity="0.25"/>
+  <circle cx="256" cy="256" r="100" fill="#d4a017"/>
+  <text x="256" y="295" font-family="Arial Black,Arial" font-weight="900" font-size="110" fill="#000" text-anchor="middle">Au</text>
+  <text x="256" y="368" font-family="Arial,sans-serif" font-weight="700" font-size="52" fill="#1a1a1a" text-anchor="middle">24K</text>
+</svg>

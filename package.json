@@ -1,0 +1,17 @@
+{
+  "name": "gold-alert",
+  "version": "1.0.0",
+  "description": "24k Gold Price Alert PWA",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "setup-vapid": "node -e \"const wp=require('web-push');const keys=wp.generateVAPIDKeys();console.log('VAPID_PUBLIC_KEY='+keys.publicKey);console.log('VAPID_PRIVATE_KEY='+keys.privateKey);\""
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3",
+    "playwright": "^1.44.0",
+    "web-push": "^3.6.7",
+    "dotenv": "^16.4.5"
+  }
+}
