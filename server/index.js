@@ -28,7 +28,8 @@ if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
 webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
 
 // ── Subscription storage ─────────────────────────────────────────────────────
-const SUBS_FILE = path.join(__dirname, '../subscriptions.json');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..');
+const SUBS_FILE = path.join(DATA_DIR, 'subscriptions.json');
 
 function loadSubs() {
   try { return JSON.parse(fs.readFileSync(SUBS_FILE, 'utf8')); }
@@ -40,7 +41,7 @@ function saveSubs(subs) {
 }
 
 // ── Price cache ──────────────────────────────────────────────────────────────
-const CACHE_FILE = path.join(__dirname, '../price-cache.json');
+const CACHE_FILE = path.join(DATA_DIR, 'price-cache.json');
 let priceCache = null;
 
 function loadCachedPrice() {
