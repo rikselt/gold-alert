@@ -11,23 +11,18 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ── VAPID setup ──────────────────────────────────────────────────────────────
-const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
-const VAPID_EMAIL   = process.env.VAPID_EMAIL || 'mailto:admin@gold-alert.local';
+let VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY;
+let VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
+const VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:admin@gold-alert.local';
 
 if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-  const wp = require('web-push');
-  const keys = wp.generateVAPIDKeys();
-  const envPath = path.join(__dirname, '../.env');
-  const envContent = [
-    `VAPID_PUBLIC_KEY=${keys.publicKey}`,
-    `VAPID_PRIVATE_KEY=${keys.privateKey}`,
-    `VAPID_EMAIL=${VAPID_EMAIL}`,
-    `PORT=3000`,
-  ].join('\n');
-  fs.writeFileSync(envPath, envContent);
-  console.log('[setup] Generated VAPID keys and wrote .env — please restart the server.');
-  process.exit(0);
+  const keys = webpush.generateVAPIDKeys();
+  VAPID_PUBLIC  = keys.publicKey;
+  VAPID_PRIVATE = keys.privateKey;
+  console.log('[setup] No VAPID keys in environment — generated temporary keys.');
+  console.log('[setup] Add these to your Railway Variables to make them permanent:');
+  console.log(`VAPID_PUBLIC_KEY=${VAPID_PUBLIC}`);
+  console.log(`VAPID_PRIVATE_KEY=${VAPID_PRIVATE}`);
 }
 
 webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
