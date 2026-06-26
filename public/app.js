@@ -3,14 +3,14 @@ let currentSubscription = null;
 let currentPrice = null;
 
 // ── Price fetching ────────────────────────────────────────────────────────────
-async function fetchPrice() {
+async function fetchPrice(isRetry = false) {
   const metaEl = document.getElementById('price-meta-text');
   const valEl = document.getElementById('price-val');
-  metaEl.textContent = 'Refreshing…';
+  if (!isRetry) metaEl.textContent = 'Loading…';
 
   try {
     const res = await fetch('/price');
-    if (!res.ok) throw new Error('Server error');
+    if (!res.ok) throw new Error('Server error ' + res.status);
     const data = await res.json();
     currentPrice = data.price;
 
@@ -19,10 +19,21 @@ async function fetchPrice() {
     metaEl.textContent = `Updated ${ts} · ${data.source}`;
 
     updateThresholdStatus(data.price);
+    return true;
   } catch (err) {
-    metaEl.textContent = 'Failed to load — tap ↻ to retry';
+    metaEl.textContent = 'Retrying…';
     valEl.textContent = '–––';
+    return false;
   }
+}
+
+async function fetchPriceWithRetry() {
+  for (let i = 0; i < 5; i++) {
+    const ok = await fetchPrice(i > 0);
+    if (ok) return;
+    await new Promise(r => setTimeout(r, 3000)); // wait 3s between retries
+  }
+  document.getElementById('price-meta-text').textContent = 'Failed to load — tap ↻ to retry';
 }
 
 function updateThresholdStatus(price) {
@@ -160,7 +171,7 @@ function checkStandaloneMode() {
     }
   }
 
-  await fetchPrice();
+  await fetchPriceWithRetry();
   // Refresh price every 60 seconds while page is visible
-  setInterval(() => { if (!document.hidden) fetchPrice(); }, 60000);
+  setInterval(() => { if (!document.hidden) fetchPriceWithRetry(); }, 60000);
 })();
