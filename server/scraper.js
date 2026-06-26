@@ -28,8 +28,11 @@ async function getGoldPrice() {
     const lines = body.trim().split('\n');
     const values = lines[1]?.split(',');
     // Close price is at index 6: Symbol(0),Date(1),Time(2),Open(3),High(4),Low(5),Close(6),Volume(7)
-    const price = parseFloat(values?.[6]);
-    if (price && price > 100) return { price, source: 'stooq.com', updatedAt: new Date().toISOString() };
+    const pricePerOz = parseFloat(values?.[6]);
+    if (pricePerOz && pricePerOz > 100) {
+      const price = parseFloat(((pricePerOz / 31.1035) * 20).toFixed(2));
+      return { price, source: 'stooq.com', updatedAt: new Date().toISOString() };
+    }
     errors.push('stooq: invalid price: ' + JSON.stringify(values));
   } catch (e) { errors.push('stooq: ' + e.message); }
 
@@ -48,8 +51,12 @@ async function getGoldPrice() {
     const { status, body } = await get('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD');
     console.log('[scraper] swissquote status:', status, body.slice(0, 100));
     const data = JSON.parse(body);
-    const price = data?.[0]?.spreadProfilePrices?.[0]?.ask;
-    if (price && price > 100) return { price, source: 'swissquote', updatedAt: new Date().toISOString() };
+    const pricePerOz = data?.[0]?.spreadProfilePrices?.[0]?.ask;
+    if (pricePerOz && pricePerOz > 100) {
+      // Convert from per troy oz (31.1035g) to per 20 grams
+      const price = parseFloat(((pricePerOz / 31.1035) * 20).toFixed(2));
+      return { price, source: 'swissquote', updatedAt: new Date().toISOString() };
+    }
     errors.push('swissquote: no price');
   } catch (e) { errors.push('swissquote: ' + e.message); }
 
