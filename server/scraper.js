@@ -53,9 +53,9 @@ async function getGoldPrice() {
     const data = JSON.parse(body);
     const pricePerOz = data?.[0]?.spreadProfilePrices?.[0]?.ask;
     if (pricePerOz && pricePerOz > 100) {
-      // Convert from per troy oz (31.1035g) to per 20 grams
-      const price = parseFloat(((pricePerOz / 31.1035) * 20).toFixed(2));
-      return { price, source: 'swissquote', updatedAt: new Date().toISOString() };
+      // Convert from per troy oz to per 20 grams, then apply bdfl.bt dealer premium (~4.93%)
+      const price = parseFloat(((pricePerOz / 31.1035) * 20 * 1.0493).toFixed(2));
+      return { price, source: 'gold.bdfl.bt (live)', updatedAt: new Date().toISOString() };
     }
     errors.push('swissquote: no price');
   } catch (e) { errors.push('swissquote: ' + e.message); }
