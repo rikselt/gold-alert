@@ -126,7 +126,11 @@ async function checkAndAlert() {
   if (!priceCache) return;
 
   const subs = loadSubs();
-  if (subs.length === 0) return;
+  console.log(`[alert] Checking ${subs.length} subscription(s), price: ${priceCache.price}`);
+  if (subs.length === 0) {
+    console.log('[alert] No subscriptions found — check PUSH_SUBSCRIPTIONS env var');
+    return;
+  }
 
   const price = priceCache.price;
   const dead = [];
