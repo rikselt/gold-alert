@@ -143,10 +143,10 @@ async function checkAndAlert() {
         await webpush.sendNotification(entry.subscription, payload);
         console.log(`[alert] Sent push: $${price} < $${entry.threshold}`);
       } catch (err) {
+        console.error(`[alert] Push error code: ${err.statusCode}, body: ${err.body}, message: ${err.message}`);
         if (err.statusCode === 410 || err.statusCode === 404) {
           dead.push(entry.subscription.endpoint);
         } else {
-          console.error('[alert] Push error:', err.message);
         }
       }
     }
