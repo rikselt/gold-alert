@@ -3,10 +3,7 @@ const https = require('https');
 function get(url) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; GoldAlert/1.0)',
-        'Accept': '*/*',
-      },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GoldAlert/1.0)', 'Accept': '*/*' },
       timeout: 8000,
     }, (res) => {
       let data = '';
@@ -18,39 +15,73 @@ function get(url) {
   });
 }
 
-async function getGoldPrice() {
-  const errors = [];
+async function scrapeFromBdfl() {
+  const { chromium } = require('playwright');
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    await page.goto('https://gold.bdfl.bt/', { waitUntil: 'networkidle', timeout: 30000 });
 
-  // Source 1: Yahoo Finance (gold futures GC=F)
+    // Wait for skeleton loaders to disappear
+    await page.waitForFunction(() => {
+      const skeletons = document.querySelectorAll('[data-slot="skeleton"]');
+      return skeletons.length === 0;
+    }, { timeout: 20000 }).catch(() => {});
+
+    const text = await page.innerText('body');
+    console.log('[scraper] bdfl.bt page text (first 300):', text.slice(0, 300));
+
+    // Find price in page text
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].match(/^\$?([\d,]+(?:\.\d{1,2})?)$/);
+      if (match) {
+        const val = parseFloat(match[1].replace(/,/g, ''));
+        if (val > 500 && val < 100000) {
+          console.log('[scraper] bdfl.bt price found:', val);
+          return { price: val, source: 'gold.bdfl.bt', updatedAt: new Date().toISOString() };
+        }
+      }
+    }
+    throw new Error('Could not find price in page');
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
+async function getGoldPrice() {
+  // Try bdfl.bt directly first
+  try {
+    return await scrapeFromBdfl();
+  } catch (e) {
+    console.warn('[scraper] bdfl.bt failed:', e.message, '— using fallback');
+  }
+
+  // Fallback: Yahoo Finance
   try {
     const { status, body } = await get('https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1d&range=1d');
     console.log('[scraper] yahoo status:', status);
     const data = JSON.parse(body);
     const pricePerOz = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    console.log('[scraper] yahoo pricePerOz:', pricePerOz);
     if (pricePerOz && pricePerOz > 100) {
       const price = parseFloat(((pricePerOz / 31.1035) * 20 * 1.0493).toFixed(2));
-      console.log('[scraper] yahoo converted price:', price);
-      return { price, source: 'live market', updatedAt: new Date().toISOString() };
+      console.log('[scraper] yahoo fallback price:', price);
+      return { price, source: 'live market (approx)', updatedAt: new Date().toISOString() };
     }
-    errors.push('yahoo: no price in response');
-  } catch (e) { errors.push('yahoo: ' + e.message); }
+  } catch (e) { console.warn('[scraper] yahoo failed:', e.message); }
 
-  // Source 2: Swissquote
+  // Fallback: Swissquote
   try {
     const { status, body } = await get('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD');
-    console.log('[scraper] swissquote status:', status);
     const data = JSON.parse(body);
     const pricePerOz = data?.[0]?.spreadProfilePrices?.[0]?.ask;
-    console.log('[scraper] swissquote pricePerOz:', pricePerOz);
     if (pricePerOz && pricePerOz > 100) {
       const price = parseFloat(((pricePerOz / 31.1035) * 20 * 1.0493).toFixed(2));
-      return { price, source: 'live market', updatedAt: new Date().toISOString() };
+      return { price, source: 'live market (approx)', updatedAt: new Date().toISOString() };
     }
-    errors.push('swissquote: no price');
-  } catch (e) { errors.push('swissquote: ' + e.message); }
+  } catch (e) { console.warn('[scraper] swissquote failed:', e.message); }
 
-  console.error('[scraper] All sources failed:', errors.join(' | '));
   throw new Error('All price sources failed');
 }
 
