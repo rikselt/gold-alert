@@ -96,45 +96,54 @@ function httpGet(url) {
   });
 }
 
-async function getTerPrice() {
-  const { chromium } = require('playwright');
-  let browser;
-  try {
-    browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    const page = await browser.newPage();
-
-    let terData = null;
-    page.on('response', async (response) => {
-      try {
-        if (response.url().includes('api.ter.bt') && response.status() === 200) {
-          const json = await response.json();
-          if (Array.isArray(json) && json.length > 0) {
-            terData = json;
-            console.log('[ter] intercepted API response from ter.bt page');
-          }
-        }
-      } catch {}
+function httpGetDetailed(url, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        'Accept': 'application/json, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Origin': 'https://ter.bt',
+        'Referer': 'https://ter.bt/',
+        ...headers,
+      },
+      timeout: 12000,
+    }, (res) => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => resolve({ status: res.statusCode, body: data, headers: res.headers }));
     });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+  });
+}
 
-    await page.goto('https://ter.bt/', { waitUntil: 'networkidle', timeout: 30000 });
-    // Wait a bit extra for the price API call
-    await page.waitForTimeout(3000);
-
-    if (!terData) throw new Error('No api.ter.bt response intercepted');
-
-    const usd = terData.find(d => d.product_symbol === 'TERUSD');
-    const btn = terData.find(d => d.product_symbol === 'TERBTN');
-    if (!usd) throw new Error('TERUSD not found');
-    console.log('[ter] price fetched via Playwright: USD buy=' + (usd.ask_price / 10000));
-    return {
-      buy: (usd.ask_price / 10000).toFixed(4),
-      sell: (usd.bid_price / 10000).toFixed(4),
-      btnBuy: btn ? (btn.ask_price / 10000).toFixed(4) : null,
-      btnSell: btn ? (btn.bid_price / 10000).toFixed(4) : null,
-      updatedAt: usd.effective_at,
-    };
-  } finally {
-    if (browser) await browser.close();
+async function getTerPrice() {
+  // Log detailed response to diagnose what's blocking us
+  try {
+    const { status, body, headers } = await httpGetDetailed('https://api.ter.bt/prices');
+    console.log('[ter] api.ter.bt status:', status);
+    console.log('[ter] api.ter.bt cors header:', headers['access-control-allow-origin']);
+    console.log('[ter] api.ter.bt body (100 chars):', body.slice(0, 100));
+    const parsed = JSON.parse(body);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const usd = parsed.find(d => d.product_symbol === 'TERUSD');
+      const btn = parsed.find(d => d.product_symbol === 'TERBTN');
+      if (usd) {
+        console.log('[ter] price fetched: USD buy=' + (usd.ask_price / 10000));
+        return {
+          buy: (usd.ask_price / 10000).toFixed(4),
+          sell: (usd.bid_price / 10000).toFixed(4),
+          btnBuy: btn ? (btn.ask_price / 10000).toFixed(4) : null,
+          btnSell: btn ? (btn.bid_price / 10000).toFixed(4) : null,
+          updatedAt: usd.effective_at,
+        };
+      }
+    }
+    throw new Error('Bad response: ' + body.slice(0, 80));
+  } catch (e) {
+    console.warn('[ter] direct fetch error:', e.message);
+    throw e;
   }
 }
 
