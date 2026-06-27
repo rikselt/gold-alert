@@ -99,7 +99,6 @@ async function getTerPrice() {
     'https://api.ter.bt/prices',
     'https://corsproxy.io/?https://api.ter.bt/prices',
     'https://api.codetabs.com/v1/proxy?quest=https://api.ter.bt/prices',
-    'https://thingproxy.freeboard.io/fetch/https://api.ter.bt/prices',
   ];
   let data = null;
   for (const url of sources) {

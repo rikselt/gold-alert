@@ -162,7 +162,7 @@ async function fetchTerPrice() {
     'https://api.ter.bt/prices',
     'https://corsproxy.io/?https://api.ter.bt/prices',
     'https://api.codetabs.com/v1/proxy?quest=https://api.ter.bt/prices',
-    'https://thingproxy.freeboard.io/fetch/https://api.ter.bt/prices',
+    'https://cors.bridged.cc/https://api.ter.bt/prices',
   ];
   for (const url of URLS) {
     try {
