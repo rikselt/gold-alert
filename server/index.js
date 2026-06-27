@@ -98,10 +98,13 @@ async function getTerPrice() {
   const body = await httpGet('https://api.ter.bt/prices');
   const data = JSON.parse(body);
   const usd = data.find(d => d.instrument === 'TERUSD');
+  const btn = data.find(d => d.instrument === 'TERBTN');
   if (!usd) throw new Error('TERUSD not found');
   return {
     buy: (usd.ask / 10000).toFixed(4),
     sell: (usd.bid / 10000).toFixed(4),
+    btnBuy: btn ? (btn.ask / 10000).toFixed(4) : null,
+    btnSell: btn ? (btn.bid / 10000).toFixed(4) : null,
     updatedAt: usd.timestamp,
   };
 }

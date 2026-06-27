@@ -164,8 +164,10 @@ async function fetchTerPrice() {
     const data = await res.json();
     document.getElementById('ter-buy').textContent = `$${data.buy}`;
     document.getElementById('ter-sell').textContent = `$${data.sell}`;
+    if (data.btnBuy) document.getElementById('ter-btn-buy').textContent = `Nu. ${data.btnBuy}`;
+    if (data.btnSell) document.getElementById('ter-btn-sell').textContent = `Nu. ${data.btnSell}`;
     const ts = new Date(data.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('ter-updated').textContent = `per TER token · USD · updated ${ts}`;
+    document.getElementById('ter-updated').textContent = `per TER token · updated ${ts}`;
   } catch (e) {
     console.warn('TER price fetch failed:', e.message);
   }

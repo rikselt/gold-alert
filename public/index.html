@@ -276,17 +276,27 @@
       <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">Live TER Price</span>
       <div class="dot" style="margin-left:auto;"></div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div>
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">BUY</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">BUY · USD</div>
         <div id="ter-buy" style="font-size:22px;font-weight:800;color:var(--green);">$–––</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">SELL</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">SELL · USD</div>
         <div id="ter-sell" style="font-size:22px;font-weight:800;color:var(--text);">$–––</div>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--text-muted);margin-top:6px;" id="ter-updated">per TER token · USD</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid #2a2a2a;">
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">BUY · BTN</div>
+        <div id="ter-btn-buy" style="font-size:18px;font-weight:700;color:var(--green);">Nu. –––</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">SELL · BTN</div>
+        <div id="ter-btn-sell" style="font-size:18px;font-weight:700;color:var(--text);">Nu. –––</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px;" id="ter-updated">per TER token · updated –</div>
   </div>
 
   <!-- Alert Setup Card -->
