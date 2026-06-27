@@ -17,7 +17,7 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil(clients.openWindow(event.notification.data?.url || '/'));
 });
 
-const VERSION = 'v6';
+const VERSION = 'v7';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
