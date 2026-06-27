@@ -82,6 +82,8 @@ async function refreshPrice() {
 
 // ── TER price ────────────────────────────────────────────────────────────────
 const https = require('https');
+let terCache = null;
+let terCacheTime = 0;
 function httpGet(url) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 8000 }, (res) => {
@@ -145,9 +147,14 @@ app.get('/price', async (req, res) => {
 
 app.get('/ter-price', async (req, res) => {
   try {
+    // Serve cache if less than 30 seconds old
+    if (terCache && Date.now() - terCacheTime < 30000) return res.json(terCache);
     const ter = await getTerPrice();
+    terCache = ter;
+    terCacheTime = Date.now();
     res.json(ter);
   } catch (e) {
+    if (terCache) return res.json(terCache); // serve stale cache on error
     res.status(503).json({ error: e.message });
   }
 });
