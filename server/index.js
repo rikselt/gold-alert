@@ -97,8 +97,9 @@ function httpGet(url) {
 async function getTerPrice() {
   const sources = [
     'https://api.ter.bt/prices',
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.ter.bt/prices'),
-    'https://corsproxy.io/?' + encodeURIComponent('https://api.ter.bt/prices'),
+    'https://corsproxy.io/?https://api.ter.bt/prices',
+    'https://api.codetabs.com/v1/proxy?quest=https://api.ter.bt/prices',
+    'https://thingproxy.freeboard.io/fetch/https://api.ter.bt/prices',
   ];
   let data = null;
   for (const url of sources) {
@@ -208,9 +209,9 @@ async function checkAndAlert() {
         console.log(`[alert] Sent push: $${price} < $${entry.threshold}`);
       } catch (err) {
         console.error(`[alert] Push error code: ${err.statusCode}, body: ${err.body}, message: ${err.message}`);
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        if (err.statusCode === 410 || err.statusCode === 404 || err.statusCode === 400) {
+          console.log(`[alert] Removing dead subscription (${err.statusCode})`);
           dead.push(entry.subscription.endpoint);
-        } else {
         }
       }
     }
