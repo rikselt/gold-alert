@@ -94,51 +94,46 @@ function httpGet(url) {
   });
 }
 
-function httpGetWithHeaders(url, headers) {
-  return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers, timeout: 10000 }, (res) => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => resolve(data));
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-  });
-}
-
 async function getTerPrice() {
-  // Try with ter.bt Origin/Referer headers so api.ter.bt thinks request is from its own site
-  const terHeaders = {
-    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
-    'Origin': 'https://ter.bt',
-    'Referer': 'https://ter.bt/',
-    'Accept': 'application/json',
-  };
-  const sources = [
-    { url: 'https://api.ter.bt/prices', headers: terHeaders },
-    { url: 'https://api.ter.bt/prices', headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' } },
-    { url: 'https://corsproxy.io/?https://api.ter.bt/prices', headers: { 'User-Agent': 'Mozilla/5.0' } },
-  ];
-  let data = null;
-  for (const { url, headers } of sources) {
-    try {
-      const body = await httpGetWithHeaders(url, headers);
-      const parsed = JSON.parse(body);
-      if (Array.isArray(parsed) && parsed.length > 0) { data = parsed; break; }
-    } catch (e) { console.warn('[ter] source failed:', url, e.message); }
+  const { chromium } = require('playwright');
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+
+    let terData = null;
+    page.on('response', async (response) => {
+      try {
+        if (response.url().includes('api.ter.bt') && response.status() === 200) {
+          const json = await response.json();
+          if (Array.isArray(json) && json.length > 0) {
+            terData = json;
+            console.log('[ter] intercepted API response from ter.bt page');
+          }
+        }
+      } catch {}
+    });
+
+    await page.goto('https://ter.bt/', { waitUntil: 'networkidle', timeout: 30000 });
+    // Wait a bit extra for the price API call
+    await page.waitForTimeout(3000);
+
+    if (!terData) throw new Error('No api.ter.bt response intercepted');
+
+    const usd = terData.find(d => d.product_symbol === 'TERUSD');
+    const btn = terData.find(d => d.product_symbol === 'TERBTN');
+    if (!usd) throw new Error('TERUSD not found');
+    console.log('[ter] price fetched via Playwright: USD buy=' + (usd.ask_price / 10000));
+    return {
+      buy: (usd.ask_price / 10000).toFixed(4),
+      sell: (usd.bid_price / 10000).toFixed(4),
+      btnBuy: btn ? (btn.ask_price / 10000).toFixed(4) : null,
+      btnSell: btn ? (btn.bid_price / 10000).toFixed(4) : null,
+      updatedAt: usd.effective_at,
+    };
+  } finally {
+    if (browser) await browser.close();
   }
-  if (!data) throw new Error('All TER sources failed');
-  const usd = data.find(d => d.product_symbol === 'TERUSD');
-  const btn = data.find(d => d.product_symbol === 'TERBTN');
-  if (!usd) throw new Error('TERUSD not found in response');
-  console.log('[ter] price fetched: USD buy=' + (usd.ask_price / 10000));
-  return {
-    buy: (usd.ask_price / 10000).toFixed(4),
-    sell: (usd.bid_price / 10000).toFixed(4),
-    btnBuy: btn ? (btn.ask_price / 10000).toFixed(4) : null,
-    btnSell: btn ? (btn.bid_price / 10000).toFixed(4) : null,
-    updatedAt: usd.effective_at,
-  };
 }
 
 // ── Routes ───────────────────────────────────────────────────────────────────
