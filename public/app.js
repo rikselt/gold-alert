@@ -161,8 +161,9 @@ async function fetchTerPrice() {
   try {
     const res = await fetch('/ter-price');
     if (!res.ok) return;
-    const data = await res.json();
-    if (data.error) return;
+    const raw = await res.json();
+    if (raw.error) return;
+    const data = raw;
     document.getElementById('ter-buy').textContent = `$${data.buy}`;
     document.getElementById('ter-sell').textContent = `$${data.sell}`;
     if (data.btnBuy) document.getElementById('ter-btn-buy').textContent = `Nu. ${data.btnBuy}`;

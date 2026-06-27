@@ -126,9 +126,10 @@ async function getTerPrice() {
     console.log('[ter] api.ter.bt cors header:', headers['access-control-allow-origin']);
     console.log('[ter] api.ter.bt body (100 chars):', body.slice(0, 100));
     const parsed = JSON.parse(body);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const usd = parsed.find(d => d.product_symbol === 'TERUSD');
-      const btn = parsed.find(d => d.product_symbol === 'TERBTN');
+    const prices = Array.isArray(parsed) ? parsed : (parsed.prices || []);
+    if (prices.length > 0) {
+      const usd = prices.find(d => d.product_symbol === 'TERUSD');
+      const btn = prices.find(d => d.product_symbol === 'TERBTN');
       if (usd) {
         console.log('[ter] price fetched: USD buy=' + (usd.ask_price / 10000));
         return {
