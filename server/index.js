@@ -80,11 +80,46 @@ async function refreshPrice() {
   }
 }
 
+// ── TER price ────────────────────────────────────────────────────────────────
+const https = require('https');
+function httpGet(url) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 8000 }, (res) => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => resolve(data));
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+  });
+}
+
+async function getTerPrice() {
+  const body = await httpGet('https://api.ter.bt/prices');
+  const data = JSON.parse(body);
+  const usd = data.find(d => d.instrument === 'TERUSD');
+  if (!usd) throw new Error('TERUSD not found');
+  return {
+    buy: (usd.ask / 10000).toFixed(4),
+    sell: (usd.bid / 10000).toFixed(4),
+    updatedAt: usd.timestamp,
+  };
+}
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.get('/price', async (req, res) => {
   if (!priceCache) await refreshPrice();
   if (!priceCache) return res.status(503).json({ error: 'Price unavailable — all sources failed' });
   res.json(priceCache);
+});
+
+app.get('/ter-price', async (req, res) => {
+  try {
+    const ter = await getTerPrice();
+    res.json(ter);
+  } catch (e) {
+    res.status(503).json({ error: e.message });
+  }
 });
 
 app.get('/debug', async (req, res) => {

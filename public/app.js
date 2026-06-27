@@ -156,6 +156,21 @@ function checkStandaloneMode() {
   }
 }
 
+// ── TER price ─────────────────────────────────────────────────────────────────
+async function fetchTerPrice() {
+  try {
+    const res = await fetch('/ter-price');
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById('ter-buy').textContent = `$${data.buy}`;
+    document.getElementById('ter-sell').textContent = `$${data.sell}`;
+    const ts = new Date(data.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('ter-updated').textContent = `per TER token · USD · updated ${ts}`;
+  } catch (e) {
+    console.warn('TER price fetch failed:', e.message);
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
   checkStandaloneMode();
@@ -163,6 +178,10 @@ function checkStandaloneMode() {
   // Fetch price first — always works regardless of notifications support
   await fetchPriceWithRetry();
   setInterval(() => { if (!document.hidden) fetchPriceWithRetry(); }, 60000);
+
+  // TER price
+  fetchTerPrice();
+  setInterval(() => { if (!document.hidden) fetchTerPrice(); }, 30000);
 
   // Service worker + push setup (best effort — don't block price display)
   try {

@@ -269,6 +269,26 @@
     <div id="threshold-status"></div>
   </div>
 
+  <!-- TER Price Card -->
+  <div class="card" style="padding:16px 24px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <img src="/ter-coin.png" alt="TER" style="width:22px;height:22px;border-radius:50%;object-fit:cover;" />
+      <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">Live TER Price</span>
+      <div class="dot" style="margin-left:auto;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">BUY</div>
+        <div id="ter-buy" style="font-size:22px;font-weight:800;color:var(--green);">$–––</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">SELL</div>
+        <div id="ter-sell" style="font-size:22px;font-weight:800;color:var(--text);">$–––</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:6px;" id="ter-updated">per TER token · USD</div>
+  </div>
+
   <!-- Alert Setup Card -->
   <div class="card">
     <div class="section-title">Price Alert</div>
