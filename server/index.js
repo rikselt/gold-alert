@@ -95,11 +95,24 @@ function httpGet(url) {
 }
 
 async function getTerPrice() {
-  const body = await httpGet('https://api.ter.bt/prices');
-  const data = JSON.parse(body);
+  const sources = [
+    'https://api.ter.bt/prices',
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.ter.bt/prices'),
+    'https://corsproxy.io/?' + encodeURIComponent('https://api.ter.bt/prices'),
+  ];
+  let data = null;
+  for (const url of sources) {
+    try {
+      const body = await httpGet(url);
+      const parsed = JSON.parse(body);
+      if (Array.isArray(parsed) && parsed.length > 0) { data = parsed; break; }
+    } catch (e) { console.warn('[ter] source failed:', url, e.message); }
+  }
+  if (!data) throw new Error('All TER sources failed');
   const usd = data.find(d => d.product_symbol === 'TERUSD');
   const btn = data.find(d => d.product_symbol === 'TERBTN');
-  if (!usd) throw new Error('TERUSD not found');
+  if (!usd) throw new Error('TERUSD not found in response');
+  console.log('[ter] price fetched: USD buy=' + (usd.ask_price / 10000));
   return {
     buy: (usd.ask_price / 10000).toFixed(4),
     sell: (usd.bid_price / 10000).toFixed(4),
