@@ -94,16 +94,35 @@ function httpGet(url) {
   });
 }
 
+function httpGetWithHeaders(url, headers) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers, timeout: 10000 }, (res) => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => resolve(data));
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+  });
+}
+
 async function getTerPrice() {
+  // Try with ter.bt Origin/Referer headers so api.ter.bt thinks request is from its own site
+  const terHeaders = {
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+    'Origin': 'https://ter.bt',
+    'Referer': 'https://ter.bt/',
+    'Accept': 'application/json',
+  };
   const sources = [
-    'https://api.ter.bt/prices',
-    'https://corsproxy.io/?https://api.ter.bt/prices',
-    'https://api.codetabs.com/v1/proxy?quest=https://api.ter.bt/prices',
+    { url: 'https://api.ter.bt/prices', headers: terHeaders },
+    { url: 'https://api.ter.bt/prices', headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' } },
+    { url: 'https://corsproxy.io/?https://api.ter.bt/prices', headers: { 'User-Agent': 'Mozilla/5.0' } },
   ];
   let data = null;
-  for (const url of sources) {
+  for (const { url, headers } of sources) {
     try {
-      const body = await httpGet(url);
+      const body = await httpGetWithHeaders(url, headers);
       const parsed = JSON.parse(body);
       if (Array.isArray(parsed) && parsed.length > 0) { data = parsed; break; }
     } catch (e) { console.warn('[ter] source failed:', url, e.message); }

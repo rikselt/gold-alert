@@ -158,31 +158,19 @@ function checkStandaloneMode() {
 
 // ── TER price ─────────────────────────────────────────────────────────────────
 async function fetchTerPrice() {
-  const URLS = [
-    'https://api.ter.bt/prices',
-    'https://corsproxy.io/?https://api.ter.bt/prices',
-    'https://api.codetabs.com/v1/proxy?quest=https://api.ter.bt/prices',
-    'https://cors.bridged.cc/https://api.ter.bt/prices',
-  ];
-  for (const url of URLS) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (!Array.isArray(data) || data.length === 0) continue;
-      const usd = data.find(d => d.product_symbol === 'TERUSD');
-      const btn = data.find(d => d.product_symbol === 'TERBTN');
-      if (!usd) continue;
-      document.getElementById('ter-buy').textContent = `$${(usd.ask_price / 10000).toFixed(4)}`;
-      document.getElementById('ter-sell').textContent = `$${(usd.bid_price / 10000).toFixed(4)}`;
-      if (btn) {
-        document.getElementById('ter-btn-buy').textContent = `Nu. ${(btn.ask_price / 10000).toFixed(4)}`;
-        document.getElementById('ter-btn-sell').textContent = `Nu. ${(btn.bid_price / 10000).toFixed(4)}`;
-      }
-      const ts = new Date(usd.effective_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('ter-updated').textContent = `per TER token · updated ${ts}`;
-      return;
-    } catch (e) { console.warn('TER url failed:', url, e.message); }
+  try {
+    const res = await fetch('/ter-price');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.error) return;
+    document.getElementById('ter-buy').textContent = `$${data.buy}`;
+    document.getElementById('ter-sell').textContent = `$${data.sell}`;
+    if (data.btnBuy) document.getElementById('ter-btn-buy').textContent = `Nu. ${data.btnBuy}`;
+    if (data.btnSell) document.getElementById('ter-btn-sell').textContent = `Nu. ${data.btnSell}`;
+    const ts = new Date(data.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('ter-updated').textContent = `per TER token · updated ${ts}`;
+  } catch (e) {
+    console.warn('TER price fetch failed:', e.message);
   }
 }
 
