@@ -32,12 +32,21 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..');
 const SUBS_FILE = path.join(DATA_DIR, 'subscriptions.json');
 
 function loadSubs() {
-  // Try file first, then fall back to PUSH_SUBSCRIPTIONS env var
-  try { return JSON.parse(fs.readFileSync(SUBS_FILE, 'utf8')); } catch {}
+  try {
+    const fileSubs = JSON.parse(fs.readFileSync(SUBS_FILE, 'utf8'));
+    if (fileSubs.length > 0) return fileSubs;
+  } catch {}
   try {
     const envSubs = process.env.PUSH_SUBSCRIPTIONS;
-    if (envSubs) return JSON.parse(envSubs);
-  } catch {}
+    console.log('[subs] PUSH_SUBSCRIPTIONS env length:', envSubs ? envSubs.length : 'NOT SET');
+    if (envSubs) {
+      const parsed = JSON.parse(envSubs);
+      console.log('[subs] Loaded', parsed.length, 'subscription(s) from env var');
+      return parsed;
+    }
+  } catch (e) {
+    console.error('[subs] Failed to parse PUSH_SUBSCRIPTIONS env var:', e.message);
+  }
   return [];
 }
 
