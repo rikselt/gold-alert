@@ -156,6 +156,27 @@ function checkStandaloneMode() {
   }
 }
 
+// ── TER Calculator ────────────────────────────────────────────────────────────
+let currentTerBuy = null;
+let currentTerBtnBuy = null;
+
+function updateTerCalc() {
+  const amount = parseFloat(document.getElementById('ter-amount').value);
+  if (!amount || isNaN(amount) || !currentTerBuy) {
+    document.getElementById('ter-calc-usd').textContent = '$–––';
+    document.getElementById('ter-calc-btn').textContent = 'Nu. –––';
+    return;
+  }
+  const usd = (amount * currentTerBuy).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('ter-calc-usd').textContent = `$${usd}`;
+  if (currentTerBtnBuy) {
+    const btn = (amount * currentTerBtnBuy).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('ter-calc-btn').textContent = `Nu. ${btn}`;
+  }
+}
+
+document.getElementById('ter-amount').addEventListener('input', updateTerCalc);
+
 // ── TER price ─────────────────────────────────────────────────────────────────
 async function fetchTerPrice() {
   try {
@@ -170,6 +191,9 @@ async function fetchTerPrice() {
     if (data.btnSell) document.getElementById('ter-btn-sell').textContent = `Nu. ${data.btnSell}`;
     const ts = new Date(data.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     document.getElementById('ter-updated').textContent = `per TER token · updated ${ts}`;
+    currentTerBuy = parseFloat(data.buy);
+    currentTerBtnBuy = data.btnBuy ? parseFloat(data.btnBuy) : null;
+    updateTerCalc();
   } catch (e) {
     console.warn('TER price fetch failed:', e.message);
   }

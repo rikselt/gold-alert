@@ -299,6 +299,27 @@
     <div style="font-size:11px;color:var(--text-muted);margin-top:8px;" id="ter-updated">per TER token · updated –</div>
   </div>
 
+  <!-- TER Calculator Card -->
+  <div class="card">
+    <div class="section-title">TER Calculator</div>
+    <div class="threshold-row">
+      <input type="number" id="ter-amount" placeholder="0" min="0" step="any"
+        style="flex:1;background:var(--surface2);border:1.5px solid #333;border-radius:12px;padding:12px 14px;font-size:20px;font-weight:700;color:var(--text);outline:none;" />
+      <span style="font-size:14px;color:var(--text-muted);white-space:nowrap;font-weight:600;">TER</span>
+    </div>
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;" id="ter-calc-result">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface2);border-radius:12px;">
+        <span style="font-size:13px;color:var(--text-muted);">Value in USD</span>
+        <span id="ter-calc-usd" style="font-size:18px;font-weight:800;color:var(--gold-light);">$–––</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface2);border-radius:12px;">
+        <span style="font-size:13px;color:var(--text-muted);">Value in Nu. (BTN)</span>
+        <span id="ter-calc-btn" style="font-size:18px;font-weight:800;color:var(--gold-light);">Nu. –––</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:2px;">Based on live buy price</div>
+    </div>
+  </div>
+
   <!-- Alert Setup Card -->
   <div class="card">
     <div class="section-title">Price Alert</div>
