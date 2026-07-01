@@ -98,6 +98,25 @@
       margin-bottom: 16px;
     }
 
+    .main-grid {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .banner-card {
+      width: 100%;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .banner-card img {
+      width: 100%;
+      display: block;
+    }
+
+    .col-heading { display: none; }
+
     .price-label {
       font-size: 13px;
       color: var(--text-muted);
@@ -285,47 +304,72 @@
     }
 
     /* ── Desktop layout ─────────────────────────────────────────────────── */
-    @media (min-width: 900px) {
-      body { padding: 48px 40px; }
+    @media (min-width: 880px) {
+      body { padding: 56px 40px 40px; }
 
       header {
-        max-width: 900px;
-        padding: 0 0 32px;
+        max-width: 940px;
+        padding: 0 0 36px;
       }
 
-      header .logo img { width: 52px !important; height: 52px !important; }
-      header h1 { font-size: 30px; }
-      header p { font-size: 14px; }
+      header .logo img { width: 56px !important; height: 56px !important; }
+      header h1 { font-size: 32px; }
+      header p { font-size: 14px; margin-top: 2px; }
+
+      #theme-toggle { width: 44px; height: 44px; font-size: 20px; }
 
       .main-grid {
-        width: 100%;
-        max-width: 900px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        align-items: start;
-      }
-
-      .main-grid > div {
-        max-width: 100% !important;
-        margin-bottom: 0 !important;
+        max-width: 940px;
       }
 
       .banner-card {
-        grid-column: 1 / -1;
-        max-height: 220px;
-        overflow: hidden;
+        border-radius: 24px;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+        margin-bottom: 28px;
       }
 
-      .banner-card img { max-height: 220px; object-fit: cover; }
+      .banner-card img {
+        max-height: 260px;
+        object-fit: cover;
+        object-position: center 35%;
+      }
+
+      .two-col {
+        display: flex;
+        gap: 28px;
+        align-items: flex-start;
+      }
+
+      .col-gold, .col-ter {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .col-heading {
+        display: block;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        padding-left: 4px;
+      }
 
       .card {
         padding: 28px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        transition: transform 0.15s, box-shadow 0.15s;
       }
 
-      #install-guide { max-width: 900px !important; }
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      }
 
-      footer { max-width: 900px; }
+      #install-guide { max-width: 940px !important; }
+
+      footer { max-width: 940px; }
     }
   </style>
 </head>
@@ -342,9 +386,13 @@
   <div class="main-grid">
 
   <!-- TER Coin Banner -->
-  <div class="banner-card" style="width:100%;max-width:420px;border-radius:20px;overflow:hidden;margin-bottom:16px;">
-    <img src="/ter-coin.png" alt="TER Gold Coin" style="width:100%;display:block;border-radius:20px;" />
+  <div class="banner-card">
+    <img src="/ter-coin.png" alt="TER Gold Coin" />
   </div>
+
+  <div class="two-col">
+  <div class="col-gold">
+  <div class="col-heading">🪙 Gold</div>
 
   <!-- Price History Chart -->
   <div class="card">
@@ -385,6 +433,11 @@
     <button class="btn btn-danger" id="unsubscribe-btn" onclick="handleUnsubscribe()" style="display:none">Disable Alerts</button>
     <div id="alert-status"></div>
   </div>
+
+  </div><!-- /col-gold -->
+
+  <div class="col-ter">
+  <div class="col-heading">🏵️ TER</div>
 
   <!-- TER Price Card -->
   <div class="card" style="padding:16px 24px;">
@@ -460,6 +513,9 @@
     <div id="ter-alert-status"></div>
   </div>
 
+  </div><!-- /col-ter -->
+  </div><!-- /two-col -->
+
   </div><!-- /main-grid -->
 
   <!-- iPhone Setup Guide (shown only if not standalone) -->
@@ -499,6 +555,6 @@
 
   <footer>Prices refresh every 5 min · Alerts fire when gold is below your target</footer>
 
-  <script src="/app.js?v=13"></script>
+  <script src="/app.js?v=14"></script>
 </body>
 </html>
