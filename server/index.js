@@ -74,10 +74,38 @@ async function refreshPrice() {
     priceCache = await getGoldPrice();
     saveCachedPrice(priceCache);
     console.log(`[price] ${priceCache.price} USD/20g (${priceCache.source})`);
+    appendHistory(priceCache.price);
   } catch (err) {
     console.error('[price] Failed to fetch:', err.message);
     if (!priceCache) priceCache = loadCachedPrice(); // use last known price
   }
+}
+
+// ── Price history ────────────────────────────────────────────────────────────
+const HISTORY_FILE = path.join(DATA_DIR, 'price-history.json');
+const HISTORY_MAX_AGE_MS = 31 * 24 * 60 * 60 * 1000; // 31 days
+
+function loadHistory() {
+  try { return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')); } catch { return []; }
+}
+
+function appendHistory(price) {
+  const history = loadHistory();
+  const now = Date.now();
+  history.push({ t: now, p: price });
+  const cutoff = now - HISTORY_MAX_AGE_MS;
+  const pruned = history.filter(entry => entry.t >= cutoff);
+  try { fs.writeFileSync(HISTORY_FILE, JSON.stringify(pruned)); } catch {}
+}
+
+function downsample(entries, maxPoints) {
+  if (entries.length <= maxPoints) return entries;
+  const step = entries.length / maxPoints;
+  const result = [];
+  for (let i = 0; i < maxPoints; i++) {
+    result.push(entries[Math.floor(i * step)]);
+  }
+  return result;
 }
 
 // ── TER price ────────────────────────────────────────────────────────────────
@@ -187,6 +215,16 @@ app.get('/debug', async (req, res) => {
     }
   }
   res.json(results);
+});
+
+app.get('/history', (req, res) => {
+  const range = req.query.range || '24h';
+  const now = Date.now();
+  const rangeMs = { '24h': 24 * 60 * 60 * 1000, '7d': 7 * 24 * 60 * 60 * 1000, '1m': 31 * 24 * 60 * 60 * 1000 }[range] || 24 * 60 * 60 * 1000;
+  const cutoff = now - rangeMs;
+  const history = loadHistory().filter(entry => entry.t >= cutoff);
+  const downsampled = downsample(history, 100);
+  res.json(downsampled);
 });
 
 app.get('/vapid-public-key', (req, res) => {

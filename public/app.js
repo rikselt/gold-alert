@@ -156,6 +156,70 @@ function checkStandaloneMode() {
   }
 }
 
+// ── Price History Chart ───────────────────────────────────────────────────────
+let currentHistoryRange = '24h';
+
+async function fetchHistory(range) {
+  try {
+    const res = await fetch(`/history?range=${range}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    renderHistoryChart(data, range);
+  } catch (e) {
+    console.warn('History fetch failed:', e.message);
+  }
+}
+
+function renderHistoryChart(data, range) {
+  const svg = document.getElementById('history-chart');
+  const emptyEl = document.getElementById('history-empty');
+
+  if (!data || data.length < 2) {
+    svg.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  svg.style.display = 'block';
+  emptyEl.style.display = 'none';
+
+  const W = 400, H = 140, PAD = 8;
+  const prices = data.map(d => d.p);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range_ = max - min || 1;
+
+  const points = data.map((d, i) => {
+    const x = PAD + (i / (data.length - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((d.p - min) / range_) * (H - PAD * 2);
+    return [x, y];
+  });
+
+  const linePath = points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const areaPath = linePath + ` L${points[points.length - 1][0].toFixed(1)},${H - PAD} L${points[0][0].toFixed(1)},${H - PAD} Z`;
+
+  const isUp = prices[prices.length - 1] >= prices[0];
+  const lineColor = isUp ? '#22c55e' : '#ef4444';
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="chartFade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.25" />
+        <stop offset="100%" stop-color="${lineColor}" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+    <path d="${areaPath}" fill="url(#chartFade)" />
+    <path d="${linePath}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+  `;
+}
+
+function setHistoryRange(range) {
+  currentHistoryRange = range;
+  document.querySelectorAll('.range-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.range === range);
+  });
+  fetchHistory(range);
+}
+
 // ── TER Calculator ────────────────────────────────────────────────────────────
 let currentTerSell = null;
 let currentTerBtnSell = null;
@@ -210,6 +274,10 @@ async function fetchTerPrice() {
   // TER price
   fetchTerPrice();
   setInterval(() => { if (!document.hidden) fetchTerPrice(); }, 30000);
+
+  // Price history chart
+  fetchHistory(currentHistoryRange);
+  setInterval(() => { if (!document.hidden) fetchHistory(currentHistoryRange); }, 60000);
 
   // Service worker + push setup (best effort — don't block price display)
   try {
