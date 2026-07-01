@@ -152,8 +152,10 @@ async function handleUnsubscribe() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ endpoint: currentSubscription.endpoint }),
     });
-    await currentSubscription.unsubscribe();
-    currentSubscription = null;
+    if (!terAlertActive) {
+      await currentSubscription.unsubscribe();
+      currentSubscription = null;
+    }
   }
   setAlertEnabled(false);
   statusEl.textContent = 'Alerts disabled.';
@@ -163,6 +165,89 @@ function setAlertEnabled(enabled) {
   document.getElementById('subscribe-btn').style.display = enabled ? 'none' : 'block';
   document.getElementById('unsubscribe-btn').style.display = enabled ? 'block' : 'none';
   document.getElementById('subscribe-btn').disabled = false;
+}
+
+// ── TER Alert ─────────────────────────────────────────────────────────────────
+let terAlertActive = false;
+
+async function handleTerSubscribe() {
+  const btn = document.getElementById('ter-subscribe-btn');
+  const statusEl = document.getElementById('ter-alert-status');
+  btn.disabled = true;
+  statusEl.textContent = 'Setting up alerts…';
+
+  try {
+    const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+    if (!isStandalone) throw new Error('Please open this app from your home screen icon, not Safari — then try again');
+
+    if (!('Notification' in window)) throw new Error('Notifications not supported in this browser');
+
+    const permission = await Notification.requestPermission();
+    if (permission === 'denied') throw new Error('Notifications are blocked — go to iPhone Settings → Notifications → Ter Gold Alert and turn them on');
+    if (permission !== 'granted') throw new Error('Notification permission was not granted — please try again and tap Allow');
+
+    statusEl.textContent = 'Registering service worker…';
+    if (!swRegistration) swRegistration = await registerSW();
+    if (!swRegistration) throw new Error('Service Worker failed to register — try reloading the app');
+
+    statusEl.textContent = 'Subscribing to push…';
+    let subscription = currentSubscription;
+    if (!subscription) {
+      const vapidKey = await getVapidKey();
+      try {
+        subscription = await swRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        });
+      } catch (pushErr) {
+        throw new Error(`Push subscribe failed: ${pushErr.message} — try removing the app from home screen, re-adding it in Safari, and trying again`);
+      }
+      currentSubscription = subscription;
+    }
+
+    const priceType = document.getElementById('ter-alert-pricetype').value;
+    const direction = document.getElementById('ter-alert-direction').value;
+    const threshold = parseFloat(document.getElementById('ter-threshold-input').value) || 1.30;
+    statusEl.textContent = 'Saving your alert…';
+    const res = await fetch('/subscribe-ter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription, priceType, direction, threshold }),
+    });
+    if (!res.ok) throw new Error('Server failed to save subscription — is the server still running?');
+
+    terAlertActive = true;
+    setTerAlertEnabled(true);
+    statusEl.textContent = `✓ Alerts enabled — you'll be notified when TER ${priceType} price ${direction === 'below' ? 'drops below' : 'rises above'} $${threshold}`;
+  } catch (err) {
+    statusEl.textContent = `❌ ${err.message}`;
+    btn.disabled = false;
+  }
+}
+
+async function handleTerUnsubscribe() {
+  const statusEl = document.getElementById('ter-alert-status');
+  if (currentSubscription) {
+    await fetch('/unsubscribe-ter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: currentSubscription.endpoint }),
+    });
+    terAlertActive = false;
+    const goldAlertActive = document.getElementById('unsubscribe-btn').style.display === 'block';
+    if (!goldAlertActive) {
+      await currentSubscription.unsubscribe();
+      currentSubscription = null;
+    }
+  }
+  setTerAlertEnabled(false);
+  statusEl.textContent = 'Alerts disabled.';
+}
+
+function setTerAlertEnabled(enabled) {
+  document.getElementById('ter-subscribe-btn').style.display = enabled ? 'none' : 'block';
+  document.getElementById('ter-unsubscribe-btn').style.display = enabled ? 'block' : 'none';
+  document.getElementById('ter-subscribe-btn').disabled = false;
 }
 
 // ── Install guide ─────────────────────────────────────────────────────────────
@@ -303,8 +388,24 @@ async function fetchTerPrice() {
       const existing = await swRegistration.pushManager.getSubscription();
       if (existing) {
         currentSubscription = existing;
-        setAlertEnabled(true);
-        document.getElementById('alert-status').textContent = 'Alerts are active.';
+        try {
+          const res = await fetch(`/alert-status?endpoint=${encodeURIComponent(existing.endpoint)}`);
+          const status = await res.json();
+          if (status.gold) {
+            setAlertEnabled(true);
+            document.getElementById('alert-status').textContent = 'Alerts are active.';
+          }
+          if (status.ter) {
+            terAlertActive = true;
+            setTerAlertEnabled(true);
+            document.getElementById('ter-alert-status').textContent = 'Alerts are active.';
+            document.getElementById('ter-alert-pricetype').value = status.ter.priceType;
+            document.getElementById('ter-alert-direction').value = status.ter.direction;
+            document.getElementById('ter-threshold-input').value = status.ter.threshold;
+          }
+        } catch (e) {
+          console.warn('Failed to fetch alert status:', e.message);
+        }
       }
     }
   } catch (e) {

@@ -380,7 +380,7 @@
 
   <!-- Alert Setup Card -->
   <div class="card">
-    <div class="section-title">Price Alert</div>
+    <div class="section-title">Gold Price Alert</div>
     <div class="threshold-row">
       <span style="font-size:20px;font-weight:700;color:var(--text-muted)">$</span>
       <input type="number" id="threshold-input" value="2500" min="1" max="999999" step="1" />
@@ -389,6 +389,29 @@
     <button class="btn btn-primary" id="subscribe-btn" onclick="handleSubscribe()">Enable Alerts</button>
     <button class="btn btn-danger" id="unsubscribe-btn" onclick="handleUnsubscribe()" style="display:none">Disable Alerts</button>
     <div id="alert-status"></div>
+  </div>
+
+  <!-- TER Alert Setup Card -->
+  <div class="card">
+    <div class="section-title">TER Price Alert</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <select id="ter-alert-pricetype" style="flex:1;background:var(--surface2);border:1.5px solid #333;border-radius:12px;padding:12px 10px;font-size:14px;font-weight:600;color:var(--text);outline:none;">
+        <option value="buy">Buy price</option>
+        <option value="sell">Sell price</option>
+      </select>
+      <select id="ter-alert-direction" style="flex:1;background:var(--surface2);border:1.5px solid #333;border-radius:12px;padding:12px 10px;font-size:14px;font-weight:600;color:var(--text);outline:none;">
+        <option value="below">drops below</option>
+        <option value="above">rises above</option>
+      </select>
+    </div>
+    <div class="threshold-row">
+      <span style="font-size:20px;font-weight:700;color:var(--text-muted)">$</span>
+      <input type="number" id="ter-threshold-input" value="1.30" min="0" step="0.0001" />
+      <span style="font-size:13px;color:var(--text-muted);white-space:nowrap">/ TER</span>
+    </div>
+    <button class="btn btn-primary" id="ter-subscribe-btn" onclick="handleTerSubscribe()">Enable Alerts</button>
+    <button class="btn btn-danger" id="ter-unsubscribe-btn" onclick="handleTerUnsubscribe()" style="display:none">Disable Alerts</button>
+    <div id="ter-alert-status"></div>
   </div>
 
   <!-- iPhone Setup Guide (shown only if not standalone) -->
@@ -428,6 +451,6 @@
 
   <footer>Prices refresh every 5 min · Alerts fire when gold is below your target</footer>
 
-  <script src="/app.js?v=9"></script>
+  <script src="/app.js?v=10"></script>
 </body>
 </html>

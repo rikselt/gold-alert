@@ -231,20 +231,54 @@ app.get('/vapid-public-key', (req, res) => {
   res.json({ key: VAPID_PUBLIC });
 });
 
+app.get('/alert-status', (req, res) => {
+  const { endpoint } = req.query;
+  if (!endpoint) return res.status(400).json({ error: 'endpoint required' });
+  const subs = loadSubs().filter(s => s.subscription.endpoint === endpoint);
+  const gold = subs.find(s => (s.type || 'gold') === 'gold') || null;
+  const ter = subs.find(s => s.type === 'ter') || null;
+  res.json({ gold, ter });
+});
+
 app.post('/subscribe', (req, res) => {
   const { subscription, threshold } = req.body;
   if (!subscription || !subscription.endpoint) {
     return res.status(400).json({ error: 'Invalid subscription' });
   }
-  const subs = loadSubs().filter(s => s.subscription.endpoint !== subscription.endpoint);
-  subs.push({ subscription, threshold: parseFloat(threshold) || 2500 });
+  const type = 'gold';
+  const subs = loadSubs().filter(s => !(s.subscription.endpoint === subscription.endpoint && (s.type || 'gold') === type));
+  subs.push({ subscription, type, threshold: parseFloat(threshold) || 2500 });
   saveSubs(subs);
   res.json({ ok: true });
 });
 
 app.post('/unsubscribe', (req, res) => {
   const { endpoint } = req.body;
-  const subs = loadSubs().filter(s => s.subscription.endpoint !== endpoint);
+  const subs = loadSubs().filter(s => !(s.subscription.endpoint === endpoint && (s.type || 'gold') === 'gold'));
+  saveSubs(subs);
+  res.json({ ok: true });
+});
+
+app.post('/subscribe-ter', (req, res) => {
+  const { subscription, priceType, direction, threshold } = req.body;
+  if (!subscription || !subscription.endpoint) {
+    return res.status(400).json({ error: 'Invalid subscription' });
+  }
+  const subs = loadSubs().filter(s => !(s.subscription.endpoint === subscription.endpoint && s.type === 'ter'));
+  subs.push({
+    subscription,
+    type: 'ter',
+    priceType: priceType === 'sell' ? 'sell' : 'buy',
+    direction: direction === 'above' ? 'above' : 'below',
+    threshold: parseFloat(threshold) || 1.30,
+  });
+  saveSubs(subs);
+  res.json({ ok: true });
+});
+
+app.post('/unsubscribe-ter', (req, res) => {
+  const { endpoint } = req.body;
+  const subs = loadSubs().filter(s => !(s.subscription.endpoint === endpoint && s.type === 'ter'));
   saveSubs(subs);
   res.json({ ok: true });
 });
@@ -264,7 +298,10 @@ async function checkAndAlert() {
   const price = priceCache.price;
   const dead = [];
 
-  for (const entry of subs) {
+  const goldSubs = subs.filter(s => (s.type || 'gold') === 'gold');
+  const terSubs = subs.filter(s => s.type === 'ter');
+
+  for (const entry of goldSubs) {
     if (price < entry.threshold) {
       const payload = JSON.stringify({
         title: '🪙 Gold Price Alert!',
@@ -282,6 +319,36 @@ async function checkAndAlert() {
           dead.push(entry.subscription.endpoint);
         }
       }
+    }
+  }
+
+  if (terSubs.length > 0) {
+    try {
+      const ter = await getTerPrice();
+      console.log(`[alert] Checking ${terSubs.length} TER subscription(s), buy=${ter.buy} sell=${ter.sell}`);
+      for (const entry of terSubs) {
+        const terPrice = parseFloat(entry.priceType === 'sell' ? ter.sell : ter.buy);
+        const crossed = entry.direction === 'above' ? terPrice > entry.threshold : terPrice < entry.threshold;
+        if (crossed) {
+          const payload = JSON.stringify({
+            title: '🪙 TER Price Alert!',
+            body: `TER ${entry.priceType} price is now $${terPrice} — ${entry.direction} your $${entry.threshold} threshold`,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+          });
+          try {
+            await webpush.sendNotification(entry.subscription, payload);
+            console.log(`[alert] Sent TER push: ${entry.priceType} $${terPrice} ${entry.direction} $${entry.threshold}`);
+          } catch (err) {
+            console.error(`[alert] TER push error code: ${err.statusCode}, body: ${err.body}`);
+            if (err.statusCode === 410 || err.statusCode === 404 || err.statusCode === 400) {
+              dead.push(entry.subscription.endpoint);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[alert] TER price fetch failed for alerts:', e.message);
     }
   }
 
