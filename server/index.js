@@ -270,7 +270,7 @@ app.post('/subscribe-ter', (req, res) => {
     type: 'ter',
     priceType: priceType === 'sell' ? 'sell' : 'buy',
     direction: direction === 'above' ? 'above' : 'below',
-    threshold: parseFloat(threshold) || 1.30,
+    threshold: parseFloat(threshold) || 126.00,
   });
   saveSubs(subs);
   res.json({ ok: true });
@@ -325,20 +325,20 @@ async function checkAndAlert() {
   if (terSubs.length > 0) {
     try {
       const ter = await getTerPrice();
-      console.log(`[alert] Checking ${terSubs.length} TER subscription(s), buy=${ter.buy} sell=${ter.sell}`);
+      console.log(`[alert] Checking ${terSubs.length} TER subscription(s), buy=Nu.${ter.btnBuy} sell=Nu.${ter.btnSell}`);
       for (const entry of terSubs) {
-        const terPrice = parseFloat(entry.priceType === 'sell' ? ter.sell : ter.buy);
+        const terPrice = parseFloat(entry.priceType === 'sell' ? ter.btnSell : ter.btnBuy);
         const crossed = entry.direction === 'above' ? terPrice > entry.threshold : terPrice < entry.threshold;
         if (crossed) {
           const payload = JSON.stringify({
             title: '🪙 TER Price Alert!',
-            body: `TER ${entry.priceType} price is now $${terPrice} — ${entry.direction} your $${entry.threshold} threshold`,
+            body: `TER ${entry.priceType} price is now Nu. ${terPrice} — ${entry.direction} your Nu. ${entry.threshold} threshold`,
             icon: '/icon-192.png',
             badge: '/icon-192.png',
           });
           try {
             await webpush.sendNotification(entry.subscription, payload);
-            console.log(`[alert] Sent TER push: ${entry.priceType} $${terPrice} ${entry.direction} $${entry.threshold}`);
+            console.log(`[alert] Sent TER push: ${entry.priceType} Nu.${terPrice} ${entry.direction} Nu.${entry.threshold}`);
           } catch (err) {
             console.error(`[alert] TER push error code: ${err.statusCode}, body: ${err.body}`);
             if (err.statusCode === 410 || err.statusCode === 404 || err.statusCode === 400) {

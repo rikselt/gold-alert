@@ -218,7 +218,7 @@ async function handleTerSubscribe() {
 
     terAlertActive = true;
     setTerAlertEnabled(true);
-    statusEl.textContent = `✓ Alerts enabled — you'll be notified when TER ${priceType} price ${direction === 'below' ? 'drops below' : 'rises above'} $${threshold}`;
+    statusEl.textContent = `✓ Alerts enabled — you'll be notified when TER ${priceType} price ${direction === 'below' ? 'drops below' : 'rises above'} Nu. ${threshold}`;
   } catch (err) {
     statusEl.textContent = `❌ ${err.message}`;
     btn.disabled = false;
