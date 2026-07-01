@@ -283,6 +283,50 @@
       background: var(--gold);
       color: #000;
     }
+
+    /* ── Desktop layout ─────────────────────────────────────────────────── */
+    @media (min-width: 900px) {
+      body { padding: 48px 40px; }
+
+      header {
+        max-width: 900px;
+        padding: 0 0 32px;
+      }
+
+      header .logo img { width: 52px !important; height: 52px !important; }
+      header h1 { font-size: 30px; }
+      header p { font-size: 14px; }
+
+      .main-grid {
+        width: 100%;
+        max-width: 900px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        align-items: start;
+      }
+
+      .main-grid > div {
+        max-width: 100% !important;
+        margin-bottom: 0 !important;
+      }
+
+      .banner-card {
+        grid-column: 1 / -1;
+        max-height: 220px;
+        overflow: hidden;
+      }
+
+      .banner-card img { max-height: 220px; object-fit: cover; }
+
+      .card {
+        padding: 28px;
+      }
+
+      #install-guide { max-width: 900px !important; }
+
+      footer { max-width: 900px; }
+    }
   </style>
 </head>
 <body>
@@ -295,8 +339,10 @@
     <button id="theme-toggle" onclick="toggleTheme()">🌙</button>
   </header>
 
+  <div class="main-grid">
+
   <!-- TER Coin Banner -->
-  <div style="width:100%;max-width:420px;border-radius:20px;overflow:hidden;margin-bottom:16px;">
+  <div class="banner-card" style="width:100%;max-width:420px;border-radius:20px;overflow:hidden;margin-bottom:16px;">
     <img src="/ter-coin.png" alt="TER Gold Coin" style="width:100%;display:block;border-radius:20px;" />
   </div>
 
@@ -414,6 +460,8 @@
     <div id="ter-alert-status"></div>
   </div>
 
+  </div><!-- /main-grid -->
+
   <!-- iPhone Setup Guide (shown only if not standalone) -->
   <div id="install-guide" style="display:none; width:100%; max-width:420px; margin-bottom:16px;">
     <div class="card" style="background:#1a1208; border:1px solid #3a2a00;">
@@ -451,6 +499,6 @@
 
   <footer>Prices refresh every 5 min · Alerts fire when gold is below your target</footer>
 
-  <script src="/app.js?v=12"></script>
+  <script src="/app.js?v=13"></script>
 </body>
 </html>
