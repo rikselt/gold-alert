@@ -2,6 +2,23 @@ let swRegistration = null;
 let currentSubscription = null;
 let currentPrice = null;
 
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-toggle').textContent = theme === 'light' ? '☀️' : '🌙';
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute('content', theme === 'light' ? '#f5f5f5' : '#0f0f0f');
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+}
+
+applyTheme(localStorage.getItem('theme') || 'dark');
+
 // ── Price fetching ────────────────────────────────────────────────────────────
 async function fetchPrice(isRetry = false) {
   const metaEl = document.getElementById('price-meta-text');
