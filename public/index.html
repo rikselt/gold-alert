@@ -320,12 +320,23 @@
 
       .main-grid {
         max-width: 940px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .two-col {
+        order: 1;
+        display: flex;
+        gap: 28px;
+        align-items: stretch;
       }
 
       .banner-card {
+        order: 2;
+        margin-top: 28px;
+        margin-bottom: 0;
         border-radius: 24px;
         box-shadow: 0 12px 32px rgba(0,0,0,0.25);
-        margin-bottom: 28px;
       }
 
       .banner-card img {
@@ -334,15 +345,16 @@
         object-position: center 35%;
       }
 
-      .two-col {
-        display: flex;
-        gap: 28px;
-        align-items: flex-start;
-      }
-
       .col-gold, .col-ter {
         flex: 1;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+
+      .col-gold .card, .col-ter .card {
+        margin-bottom: 0;
       }
 
       .col-heading {
@@ -555,6 +567,6 @@
 
   <footer>Prices refresh every 5 min · Alerts fire when gold is below your target</footer>
 
-  <script src="/app.js?v=14"></script>
+  <script src="/app.js?v=15"></script>
 </body>
 </html>
