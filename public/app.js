@@ -272,6 +272,12 @@ async function fetchHistory(range) {
   }
 }
 
+function formatChartTime(ts, range) {
+  const d = new Date(ts);
+  if (range === '24h') return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
 function renderHistoryChart(data, range) {
   const svg = document.getElementById('history-chart');
   const emptyEl = document.getElementById('history-empty');
@@ -284,23 +290,35 @@ function renderHistoryChart(data, range) {
   svg.style.display = 'block';
   emptyEl.style.display = 'none';
 
-  const W = 400, H = 140, PAD = 8;
+  const W = 400, H = 170;
+  const PAD_LEFT = 4, PAD_RIGHT = 4, PAD_TOP = 22, PAD_BOTTOM = 22;
+  const plotW = W - PAD_LEFT - PAD_RIGHT;
+  const plotH = H - PAD_TOP - PAD_BOTTOM;
+
   const prices = data.map(d => d.p);
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   const range_ = max - min || 1;
 
   const points = data.map((d, i) => {
-    const x = PAD + (i / (data.length - 1)) * (W - PAD * 2);
-    const y = H - PAD - ((d.p - min) / range_) * (H - PAD * 2);
+    const x = PAD_LEFT + (i / (data.length - 1)) * plotW;
+    const y = PAD_TOP + plotH - ((d.p - min) / range_) * plotH;
     return [x, y];
   });
 
   const linePath = points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-  const areaPath = linePath + ` L${points[points.length - 1][0].toFixed(1)},${H - PAD} L${points[0][0].toFixed(1)},${H - PAD} Z`;
+  const areaPath = linePath + ` L${points[points.length - 1][0].toFixed(1)},${PAD_TOP + plotH} L${points[0][0].toFixed(1)},${PAD_TOP + plotH} Z`;
 
-  const isUp = prices[prices.length - 1] >= prices[0];
+  const firstPrice = prices[0];
+  const lastPrice = prices[prices.length - 1];
+  const isUp = lastPrice >= firstPrice;
   const lineColor = isUp ? '#22c55e' : '#ef4444';
+  const pctChange = firstPrice ? (((lastPrice - firstPrice) / firstPrice) * 100).toFixed(2) : '0.00';
+  const pctLabel = (isUp ? '+' : '') + pctChange + '%';
+
+  const lastPoint = points[points.length - 1];
+  const startLabel = formatChartTime(data[0].t, range);
+  const endLabel = formatChartTime(data[data.length - 1].t, range);
 
   svg.innerHTML = `
     <defs>
@@ -309,8 +327,13 @@ function renderHistoryChart(data, range) {
         <stop offset="100%" stop-color="${lineColor}" stop-opacity="0" />
       </linearGradient>
     </defs>
+    <text x="${W - 4}" y="14" text-anchor="end" font-size="12" font-weight="700" fill="${lineColor}">${pctLabel}</text>
+    <text x="4" y="14" text-anchor="start" font-size="10" fill="var(--text-muted)">$${max.toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
     <path d="${areaPath}" fill="url(#chartFade)" />
     <path d="${linePath}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+    <circle cx="${lastPoint[0].toFixed(1)}" cy="${lastPoint[1].toFixed(1)}" r="3.5" fill="${lineColor}" />
+    <text x="4" y="${H - 6}" text-anchor="start" font-size="10" fill="var(--text-muted)">$${min.toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
+    <text x="${W / 2}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--text-muted)">${startLabel} → ${endLabel}</text>
   `;
 }
 
