@@ -278,11 +278,15 @@ function formatChartTime(ts, range) {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function renderHistoryChart(data, range) {
+function fmtPrice(n) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderHistoryChart(candles, range) {
   const svg = document.getElementById('history-chart');
   const emptyEl = document.getElementById('history-empty');
 
-  if (!data || data.length < 2) {
+  if (!candles || candles.length < 2) {
     svg.style.display = 'none';
     emptyEl.style.display = 'block';
     return;
@@ -290,50 +294,78 @@ function renderHistoryChart(data, range) {
   svg.style.display = 'block';
   emptyEl.style.display = 'none';
 
-  const W = 400, H = 170;
-  const PAD_LEFT = 4, PAD_RIGHT = 4, PAD_TOP = 22, PAD_BOTTOM = 22;
+  const isDark = (document.documentElement.getAttribute('data-theme') || 'dark') !== 'light';
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const mutedColor = isDark ? '#888' : '#666';
+
+  const W = 400, H = 220;
+  const PAD_LEFT = 8, PAD_RIGHT = 46, PAD_TOP = 40, PAD_BOTTOM = 22;
   const plotW = W - PAD_LEFT - PAD_RIGHT;
   const plotH = H - PAD_TOP - PAD_BOTTOM;
 
-  const prices = data.map(d => d.p);
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const range_ = max - min || 1;
+  const allHighs = candles.map(c => c.h);
+  const allLows = candles.map(c => c.l);
+  const min = Math.min(...allLows);
+  const max = Math.max(...allHighs);
+  const range_ = (max - min) || 1;
+  const padRange = range_ * 0.08; // breathing room top/bottom
+  const scaleMin = min - padRange;
+  const scaleMax = max + padRange;
+  const scaleRange = scaleMax - scaleMin;
 
-  const points = data.map((d, i) => {
-    const x = PAD_LEFT + (i / (data.length - 1)) * plotW;
-    const y = PAD_TOP + plotH - ((d.p - min) / range_) * plotH;
-    return [x, y];
+  const yFor = (price) => PAD_TOP + plotH - ((price - scaleMin) / scaleRange) * plotH;
+  const slotW = plotW / candles.length;
+  const bodyW = Math.max(2, Math.min(14, slotW * 0.6));
+
+  const first = candles[0];
+  const last = candles[candles.length - 1];
+  const isUp = last.c >= first.o;
+  const trendColor = isUp ? '#22c55e' : '#ef4444';
+  const change = last.c - first.o;
+  const pctChange = first.o ? ((change / first.o) * 100).toFixed(2) : '0.00';
+  const changeLabel = (change >= 0 ? '+' : '') + change.toFixed(2) + ' (' + (change >= 0 ? '+' : '') + pctChange + '%)';
+
+  // Gridlines + right-side price labels (4 lines)
+  const GRID_LINES = 4;
+  let gridSvg = '';
+  for (let i = 0; i <= GRID_LINES; i++) {
+    const price = scaleMax - (i / GRID_LINES) * scaleRange;
+    const y = yFor(price);
+    gridSvg += `<line x1="${PAD_LEFT}" y1="${y.toFixed(1)}" x2="${W - PAD_RIGHT}" y2="${y.toFixed(1)}" stroke="${gridColor}" stroke-width="1" />`;
+    gridSvg += `<text x="${W - PAD_RIGHT + 6}" y="${(y + 3.5).toFixed(1)}" font-size="9" fill="${mutedColor}">${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>`;
+  }
+
+  // Candlesticks
+  let candleSvg = '';
+  candles.forEach((c, i) => {
+    const x = PAD_LEFT + i * slotW + slotW / 2;
+    const yH = yFor(c.h), yL = yFor(c.l), yO = yFor(c.o), yC = yFor(c.c);
+    const up = c.c >= c.o;
+    const color = up ? '#22c55e' : '#ef4444';
+    const bodyTop = Math.min(yO, yC);
+    const bodyH = Math.max(1.5, Math.abs(yC - yO));
+    candleSvg += `<line x1="${x.toFixed(1)}" y1="${yH.toFixed(1)}" x2="${x.toFixed(1)}" y2="${yL.toFixed(1)}" stroke="${color}" stroke-width="1" />`;
+    candleSvg += `<rect x="${(x - bodyW / 2).toFixed(1)}" y="${bodyTop.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${color}" />`;
   });
 
-  const linePath = points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-  const areaPath = linePath + ` L${points[points.length - 1][0].toFixed(1)},${PAD_TOP + plotH} L${points[0][0].toFixed(1)},${PAD_TOP + plotH} Z`;
-
-  const firstPrice = prices[0];
-  const lastPrice = prices[prices.length - 1];
-  const isUp = lastPrice >= firstPrice;
-  const lineColor = isUp ? '#22c55e' : '#ef4444';
-  const pctChange = firstPrice ? (((lastPrice - firstPrice) / firstPrice) * 100).toFixed(2) : '0.00';
-  const pctLabel = (isUp ? '+' : '') + pctChange + '%';
-
-  const lastPoint = points[points.length - 1];
-  const startLabel = formatChartTime(data[0].t, range);
-  const endLabel = formatChartTime(data[data.length - 1].t, range);
+  // X-axis time labels (first, middle, last)
+  const labelIdxs = [0, Math.floor((candles.length - 1) / 2), candles.length - 1];
+  let xLabelSvg = '';
+  labelIdxs.forEach((idx, k) => {
+    const x = PAD_LEFT + idx * slotW + slotW / 2;
+    const anchor = k === 0 ? 'start' : k === labelIdxs.length - 1 ? 'end' : 'middle';
+    xLabelSvg += `<text x="${x.toFixed(1)}" y="${H - 6}" text-anchor="${anchor}" font-size="10" fill="${mutedColor}">${formatChartTime(candles[idx].t, range)}</text>`;
+  });
 
   svg.innerHTML = `
-    <defs>
-      <linearGradient id="chartFade" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.25" />
-        <stop offset="100%" stop-color="${lineColor}" stop-opacity="0" />
-      </linearGradient>
-    </defs>
-    <text x="${W - 4}" y="14" text-anchor="end" font-size="12" font-weight="700" fill="${lineColor}">${pctLabel}</text>
-    <text x="4" y="14" text-anchor="start" font-size="10" fill="var(--text-muted)">$${max.toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
-    <path d="${areaPath}" fill="url(#chartFade)" />
-    <path d="${linePath}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
-    <circle cx="${lastPoint[0].toFixed(1)}" cy="${lastPoint[1].toFixed(1)}" r="3.5" fill="${lineColor}" />
-    <text x="4" y="${H - 6}" text-anchor="start" font-size="10" fill="var(--text-muted)">$${min.toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
-    <text x="${W / 2}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--text-muted)">${startLabel} → ${endLabel}</text>
+    <text x="4" y="14" font-size="11" font-weight="700" fill="${mutedColor}">O <tspan fill="${isUp ? '#22c55e' : '#ef4444'}">${fmtPrice(first.o)}</tspan></text>
+    <text x="96" y="14" font-size="11" font-weight="700" fill="${mutedColor}">H <tspan fill="var(--text)">${fmtPrice(max)}</tspan></text>
+    <text x="188" y="14" font-size="11" font-weight="700" fill="${mutedColor}">L <tspan fill="var(--text)">${fmtPrice(min)}</tspan></text>
+    <text x="280" y="14" font-size="11" font-weight="700" fill="${mutedColor}">C <tspan fill="${trendColor}">${fmtPrice(last.c)}</tspan></text>
+    <text x="4" y="30" font-size="11" font-weight="700" fill="${trendColor}">${changeLabel}</text>
+    ${gridSvg}
+    ${candleSvg}
+    ${xLabelSvg}
   `;
 }
 

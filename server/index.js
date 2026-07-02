@@ -98,15 +98,6 @@ function appendHistory(price) {
   try { fs.writeFileSync(HISTORY_FILE, JSON.stringify(pruned)); } catch {}
 }
 
-function downsample(entries, maxPoints) {
-  if (entries.length <= maxPoints) return entries;
-  const step = entries.length / maxPoints;
-  const result = [];
-  for (let i = 0; i < maxPoints; i++) {
-    result.push(entries[Math.floor(i * step)]);
-  }
-  return result;
-}
 
 // ── TER price ────────────────────────────────────────────────────────────────
 const https = require('https');
@@ -221,10 +212,27 @@ app.get('/history', (req, res) => {
   const range = req.query.range || '24h';
   const now = Date.now();
   const rangeMs = { '24h': 24 * 60 * 60 * 1000, '7d': 7 * 24 * 60 * 60 * 1000, '1m': 31 * 24 * 60 * 60 * 1000 }[range] || 24 * 60 * 60 * 1000;
+  const bucketMs = { '24h': 60 * 60 * 1000, '7d': 24 * 60 * 60 * 1000, '1m': 24 * 60 * 60 * 1000 }[range] || 60 * 60 * 1000;
   const cutoff = now - rangeMs;
   const history = loadHistory().filter(entry => entry.t >= cutoff);
-  const downsampled = downsample(history, 100);
-  res.json(downsampled);
+
+  const buckets = new Map();
+  for (const entry of history) {
+    const key = Math.floor(entry.t / bucketMs) * bucketMs;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(entry.p);
+  }
+  const candles = Array.from(buckets.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([t, prices]) => ({
+      t,
+      o: prices[0],
+      h: Math.max(...prices),
+      l: Math.min(...prices),
+      c: prices[prices.length - 1],
+    }));
+
+  res.json(candles);
 });
 
 app.get('/vapid-public-key', (req, res) => {
