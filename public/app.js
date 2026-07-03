@@ -253,7 +253,14 @@ function setTerAlertEnabled(enabled) {
 // ── Install guide ─────────────────────────────────────────────────────────────
 function checkStandaloneMode() {
   const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-  if (!isStandalone) {
+  if (isStandalone) return;
+
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if (isAndroid) {
+    document.getElementById('install-guide-android').style.display = 'block';
+  } else if (isIOS) {
     document.getElementById('install-guide').style.display = 'block';
   }
 }

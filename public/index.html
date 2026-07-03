@@ -393,7 +393,7 @@
         box-shadow: 0 8px 24px rgba(0,0,0,0.18);
       }
 
-      #install-guide { display: none !important; }
+      #install-guide, #install-guide-android { display: none !important; }
 
       footer { max-width: 940px; }
     }
@@ -584,8 +584,43 @@
     </div>
   </div>
 
+  <!-- Android Setup Guide (shown only if not standalone) -->
+  <div id="install-guide-android" style="display:none; width:100%; max-width:420px; margin-bottom:16px;">
+    <div class="card" style="background:#1a1208; border:1px solid #3a2a00;">
+      <div class="section-title" style="color:var(--gold)">📲 Add to Android Home Screen</div>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <strong>Open in Chrome</strong>
+          <span>Push notifications work best in Chrome on Android</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <strong>Tap the ⋮ menu</strong>
+          <span>Three dots in the top-right corner of Chrome</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <strong>Tap "Add to Home screen"</strong>
+          <span>Then open the Gold Alert icon from your home screen</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">
+          <strong>Enable Alerts above</strong>
+          <span>Grant notification permission when prompted</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer>Prices refresh every 5 min · Alerts fire when gold is below your target</footer>
 
-  <script src="/app.js?v=21"></script>
+  <script src="/app.js?v=22"></script>
 </body>
 </html>
