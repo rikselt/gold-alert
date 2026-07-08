@@ -19,6 +19,20 @@ function toggleTheme() {
 
 applyTheme(localStorage.getItem('theme') || 'dark');
 
+// ── Visitor tracking ──────────────────────────────────────────────────────────
+(function recordVisitOnce() {
+  let visitorId = localStorage.getItem('visitorId');
+  if (!visitorId) {
+    visitorId = 'v_' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+    localStorage.setItem('visitorId', visitorId);
+  }
+  fetch('/visit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ visitorId }),
+  }).catch(() => {});
+})();
+
 // ── Price fetching ────────────────────────────────────────────────────────────
 async function fetchPrice(isRetry = false) {
   const metaEl = document.getElementById('price-meta-text');

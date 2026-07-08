@@ -31,6 +31,26 @@ webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..');
 const SUBS_FILE = path.join(DATA_DIR, 'subscriptions.json');
 
+// ── Visitor tracking ─────────────────────────────────────────────────────────
+const VISITS_FILE = path.join(DATA_DIR, 'visits.json');
+
+function loadVisits() {
+  try { return JSON.parse(fs.readFileSync(VISITS_FILE, 'utf8')); } catch { return {}; }
+}
+
+function saveVisits(visits) {
+  try { fs.writeFileSync(VISITS_FILE, JSON.stringify(visits)); } catch {}
+}
+
+function recordVisit(visitorId) {
+  if (!visitorId) return;
+  const visits = loadVisits();
+  const today = new Date().toISOString().slice(0, 10);
+  if (!visits[today]) visits[today] = [];
+  if (!visits[today].includes(visitorId)) visits[today].push(visitorId);
+  saveVisits(visits);
+}
+
 function loadSubs() {
   try {
     const fileSubs = JSON.parse(fs.readFileSync(SUBS_FILE, 'utf8'));
@@ -206,6 +226,27 @@ app.get('/debug', async (req, res) => {
     }
   }
   res.json(results);
+});
+
+app.post('/visit', (req, res) => {
+  recordVisit(req.body.visitorId);
+  res.json({ ok: true });
+});
+
+app.get('/stats', (req, res) => {
+  const visits = loadVisits();
+  const days = Object.keys(visits).sort();
+  const totalUniqueEver = new Set(days.flatMap(d => visits[d])).size;
+  const today = new Date().toISOString().slice(0, 10);
+  const last7 = days.filter(d => d >= new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
+  const last7Unique = new Set(last7.flatMap(d => visits[d])).size;
+  const daily = days.slice(-30).map(d => ({ date: d, visitors: visits[d].length }));
+  res.json({
+    totalUniqueEver,
+    todayVisitors: (visits[today] || []).length,
+    last7DaysUnique: last7Unique,
+    daily,
+  });
 });
 
 app.get('/history', (req, res) => {
