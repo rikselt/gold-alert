@@ -502,7 +502,11 @@
 
   <!-- TER Calculator Card -->
   <div class="card">
-    <div class="section-title">TER Calculator</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+      <div class="section-title" style="margin-bottom:0;">My TER Holdings</div>
+      <span id="ter-calc-saved" style="display:none;font-size:11px;font-weight:700;color:var(--green);">✓ Saved</span>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Enter how much TER you own — it's saved on this device and updates with the live price</div>
     <div class="threshold-row">
       <input type="number" id="ter-amount" placeholder="0" min="0" step="any"
         style="flex:1;background:var(--surface2);border:1.5px solid #333;border-radius:12px;padding:12px 14px;font-size:20px;font-weight:700;color:var(--text);outline:none;" />
@@ -621,6 +625,6 @@
 
   <footer>Prices refresh every 5 min · Alerts fire when gold is below your target</footer>
 
-  <script src="/app.js?v=23"></script>
+  <script src="/app.js?v=24"></script>
 </body>
 </html>

@@ -402,13 +402,27 @@ function setHistoryRange(range) {
 let currentTerSell = null;
 let currentTerBtnSell = null;
 
+const TER_HOLDINGS_KEY = 'terHoldingsAmount';
+
 function updateTerCalc() {
-  const amount = parseFloat(document.getElementById('ter-amount').value);
-  if (!amount || isNaN(amount) || !currentTerSell) {
+  const amountInput = document.getElementById('ter-amount');
+  const amount = parseFloat(amountInput.value);
+  const savedEl = document.getElementById('ter-calc-saved');
+
+  if (!amount || isNaN(amount)) {
     document.getElementById('ter-calc-usd').textContent = '$–––';
     document.getElementById('ter-calc-btn').textContent = 'Nu. –––';
+    if (savedEl) savedEl.style.display = 'none';
     return;
   }
+
+  try {
+    localStorage.setItem(TER_HOLDINGS_KEY, String(amount));
+    if (savedEl) savedEl.style.display = 'inline';
+  } catch {}
+
+  if (!currentTerSell) return;
+
   const usd = (amount * currentTerSell).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   document.getElementById('ter-calc-usd').textContent = `$${usd}`;
   if (currentTerBtnSell) {
@@ -417,7 +431,18 @@ function updateTerCalc() {
   }
 }
 
+function loadSavedTerHoldings() {
+  try {
+    const saved = localStorage.getItem(TER_HOLDINGS_KEY);
+    if (saved) {
+      document.getElementById('ter-amount').value = saved;
+      updateTerCalc();
+    }
+  } catch {}
+}
+
 document.getElementById('ter-amount').addEventListener('input', updateTerCalc);
+loadSavedTerHoldings();
 
 // ── TER price ─────────────────────────────────────────────────────────────────
 async function fetchTerPrice() {
